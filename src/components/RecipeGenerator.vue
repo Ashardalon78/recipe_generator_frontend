@@ -41,6 +41,8 @@
 
 <script>
 import axios from "axios";
+const backendUrl = "https://recipe-generator-backend-07g0.onrender.com"
+//"http://127.0.0.1:5000
 
 export default {
   data() {
@@ -52,7 +54,7 @@ export default {
   methods: {
     async generateRecipe() {
       try {
-        const response = await axios.get("http://127.0.0.1:5000/generate");
+        const response = await axios.get(`${backendUrl}/generate`);
         console.log("Server Response:", response.data);
         this.recipe = response.data;
       } catch (error) {
@@ -63,7 +65,7 @@ export default {
       if (!this.recipe) return;
 
       try {
-        await axios.post("http://127.0.0.1:5000/save", this.recipe);
+        await axios.post(`${backendUrl}/save`, this.recipe);
         console.log("Rezept gespeichert!");
         alert("Rezept gespeichert!");
       } catch (error) {
@@ -72,7 +74,7 @@ export default {
     },
     async loadRecipes() {
       try {
-        const response = await axios.get("http://127.0.0.1:5000/load");
+        const response = await axios.get(`${backendUrl}/load`);
         this.savedRecipes = response.data;
       } catch (error) {
         console.error("Fehler beim Laden:", error);
@@ -82,7 +84,7 @@ export default {
       if (!this.recipe) return;
 
       try {
-        await axios.post("http://127.0.0.1:5000/delete", { title: this.recipe.title });
+        await axios.post(`${backendUrl}/delete`, { title: this.recipe.title });
         console.log("Rezept gelöscht!");
         alert("Rezept gelöscht!");
 
