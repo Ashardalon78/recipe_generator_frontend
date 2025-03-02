@@ -41,7 +41,8 @@
 
 <script>
 import axios from "axios";
-const backendUrl = "https://recipe-generator-backend-07g0.onrender.com"
+//const backendUrl = "https://recipe-generator-backend-07g0.onrender.com"
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 //"http://127.0.0.1:5000
 
 export default {
