@@ -81,16 +81,33 @@ export default {
         console.error("Fehler beim Laden:", error);
       }
     },
+    // async deleteRecipe() {
+    //   if (!this.recipe) return;
+
+    //   try {
+    //     await axios.post(`${backendUrl}/delete`, { title: this.recipe.title });
+    //     console.log("Rezept gelöscht!");
+    //     alert("Rezept gelöscht!");
+
+    //     // Entferne das Rezept aus der lokalen Liste
+    //     this.savedRecipes = this.savedRecipes.filter(r => r.title !== this.recipe.title);
+
+    //     // Rezept im Editor zurücksetzen
+    //     this.recipe = null;
+    //   } catch (error) {
+    //     console.error("Fehler beim Löschen:", error);
+    //   }
+    // },
     async deleteRecipe() {
-      if (!this.recipe) return;
+      if (!this.recipe || !this.recipe.id) return;
 
       try {
-        await axios.post(`${backendUrl}/delete`, { title: this.recipe.title });
+        await axios.delete(`${backendUrl}/delete/${this.recipe.id}`);
         console.log("Rezept gelöscht!");
         alert("Rezept gelöscht!");
 
         // Entferne das Rezept aus der lokalen Liste
-        this.savedRecipes = this.savedRecipes.filter(r => r.title !== this.recipe.title);
+        this.savedRecipes = this.savedRecipes.filter(r => r.id !== this.recipe.id);
 
         // Rezept im Editor zurücksetzen
         this.recipe = null;
