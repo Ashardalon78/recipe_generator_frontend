@@ -2,6 +2,26 @@
   <div>
     <h2>Zufälliger Rezept-Generator</h2>
 
+    <!-- Benutzer Dropdown und Registrierung -->
+    <div>
+      <h3>Benutzer auswählen:</h3>
+      <select v-model="currentUser" @change="loadUserRecipes">
+        <option disabled value="">Wählen Sie einen Benutzer</option>
+        <option v-for="user in users" :key="user.id" :value="user">
+          {{ user.name }}
+        </option>
+      </select>
+      
+      <button @click="showRegisterForm = !showRegisterForm" class="btn">
+        Neuen Benutzer registrieren
+      </button>
+
+      <div v-if="showRegisterForm">
+        <input v-model="newUserName" placeholder="Benutzername" class="input" />
+        <button @click="registerUser" class="btn">Bestätigen</button>
+      </div>
+    </div>
+
     <!-- Rezept-Details mit bearbeitbaren Feldern -->
     <div v-if="recipe" class="recipe-card">
       <label><strong>Rezeptname:</strong></label>
@@ -41,21 +61,30 @@
 
 <script>
 import axios from "axios";
-//const backendUrl = "https://recipe-generator-backend-07g0.onrender.com"
+
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
-//"http://127.0.0.1:5000
 
 export default {
   data() {
     return {
       recipe: null,
-      savedRecipes: []
+      savedRecipes: [],
+      currentUser: null,
+      users: [],
+      newUserName: "",
+      showRegisterForm: false
     };
   },
   methods: {
     async generateRecipe() {
       try {
-        const response = await axios.get(`${backendUrl}/generate`);
+        if (!this.currentUser) {
+          console.error("Kein Benutzer ausgewählt!");
+          return;
+        }
+
+        // Generiere Rezept mit der User-ID in der URL
+        const response = await axios.get(`${backendUrl}/generate/${this.currentUser.id}`);
         console.log("Server Response:", response.data);
         this.recipe = response.data;
       } catch (error) {
@@ -63,41 +92,26 @@ export default {
       }
     },
     async saveRecipe() {
+      if (!this.currentUser) {
+        alert("Bitte wähle einen Benutzer aus!");
+        return;
+      }
+
       if (!this.recipe) return;
 
       try {
-        await axios.post(`${backendUrl}/save`, this.recipe);
+        await axios.post(`${backendUrl}/save`, {
+          user_id: this.currentUser.id,
+          title: this.recipe.title,
+          ingredients: this.recipe.ingredients,
+          instructions: this.recipe.instructions
+        });
         console.log("Rezept gespeichert!");
         alert("Rezept gespeichert!");
       } catch (error) {
         console.error("Fehler beim Speichern:", error);
       }
     },
-    async loadRecipes() {
-      try {
-        const response = await axios.get(`${backendUrl}/load`);
-        this.savedRecipes = response.data;
-      } catch (error) {
-        console.error("Fehler beim Laden:", error);
-      }
-    },
-    // async deleteRecipe() {
-    //   if (!this.recipe) return;
-
-    //   try {
-    //     await axios.post(`${backendUrl}/delete`, { title: this.recipe.title });
-    //     console.log("Rezept gelöscht!");
-    //     alert("Rezept gelöscht!");
-
-    //     // Entferne das Rezept aus der lokalen Liste
-    //     this.savedRecipes = this.savedRecipes.filter(r => r.title !== this.recipe.title);
-
-    //     // Rezept im Editor zurücksetzen
-    //     this.recipe = null;
-    //   } catch (error) {
-    //     console.error("Fehler beim Löschen:", error);
-    //   }
-    // },
     async deleteRecipe() {
       if (!this.recipe || !this.recipe.id) return;
 
@@ -115,9 +129,53 @@ export default {
         console.error("Fehler beim Löschen:", error);
       }
     },
+    async loadRecipes() {
+      if (!this.currentUser) {
+        alert("Bitte wähle einen Benutzer aus!");
+        return;
+      }
+
+      try {
+        const response = await axios.get(`${backendUrl}/recipes/${this.currentUser.id}`);
+        this.savedRecipes = response.data;
+      } catch (error) {
+        console.error("Fehler beim Laden:", error);
+      }
+    },
     selectRecipe(selected) {
       this.recipe = JSON.parse(JSON.stringify(selected)); // Kopie, um Original nicht direkt zu ändern
+    },
+    async loadUsers() {
+      try {
+        const response = await axios.get(`${backendUrl}/users`);
+        this.users = response.data;
+      } catch (error) {
+        console.error("Fehler beim Laden der Benutzer:", error);
+      }
+    },
+    async registerUser() {
+      if (!this.newUserName) return;
+
+      try {
+        const response = await axios.post(`${backendUrl}/register`, { name: this.newUserName });
+        console.log("User registriert:", response.data);
+
+        // Den neuen Benutzer direkt im Dropdown hinzufügen
+        this.users.push(response.data);  // Füge den neuen Benutzer zur Liste hinzu
+
+        // Dropdown auf den neuen Benutzer setzen
+        this.currentUser = response.data;
+
+        // Eingabefeld zurücksetzen
+        this.newUserName = "";
+        this.isRegistering = false;
+      } catch (error) {
+        console.error("Fehler bei der Registrierung:", error);
+      }
     }
+  },
+  mounted() {
+    this.loadUsers(); // Benutzer bei der Initialisierung laden
   }
 };
 </script>
