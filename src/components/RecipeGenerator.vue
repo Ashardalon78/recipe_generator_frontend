@@ -11,7 +11,7 @@
           {{ user.name }}
         </option>
       </select>
-      
+
       <button @click="showRegisterForm = !showRegisterForm" class="btn">
         Neuen Benutzer registrieren
       </button>
@@ -27,10 +27,33 @@
       <label><strong>Rezeptname:</strong></label>
       <input v-model="recipe.title" class="input" />
 
-      <p><strong>Gemüse:</strong> {{ recipe.ingredients.vegetables }}</p>
-      <p><strong>Proteine:</strong> {{ recipe.ingredients.proteins }}</p>
-      <p><strong>Kohlenhydrate:</strong> {{ recipe.ingredients.carbs }}</p>
-      <p><strong>Fette:</strong> {{ recipe.ingredients.fats }}</p>
+      <div>
+        <label><strong>Gemüse:</strong></label>
+        <select v-model="recipe.ingredients.vegetables" class="input">
+          <option v-for="veg in availableIngredients.vegetables" :key="veg" :value="veg">{{ veg }}</option>
+        </select>
+      </div>
+
+      <div>
+        <label><strong>Proteine:</strong></label>
+        <select v-model="recipe.ingredients.proteins" class="input">
+          <option v-for="protein in availableIngredients.proteins" :key="protein" :value="protein">{{ protein }}</option>
+        </select>
+      </div>
+
+      <div>
+        <label><strong>Kohlenhydrate:</strong></label>
+        <select v-model="recipe.ingredients.carbs" class="input">
+          <option v-for="carb in availableIngredients.carbs" :key="carb" :value="carb">{{ carb }}</option>
+        </select>
+      </div>
+
+      <div>
+        <label><strong>Fette:</strong></label>
+        <select v-model="recipe.ingredients.fats" class="input">
+          <option v-for="fat in availableIngredients.fats" :key="fat" :value="fat">{{ fat }}</option>
+        </select>
+      </div>
 
       <label><strong>Zubereitung:</strong></label>
       <textarea v-model="recipe.instructions" class="input"></textarea>
@@ -72,10 +95,24 @@ export default {
       currentUser: null,
       users: [],
       newUserName: "",
-      showRegisterForm: false
+      showRegisterForm: false,
+      availableIngredients: {
+        vegetables: [],
+        proteins: [],
+        carbs: [],
+        fats: []
+      }
     };
   },
   methods: {
+    async loadIngredients() {
+      try {
+        const response = await axios.get(`${backendUrl}/ingredients`);
+        this.availableIngredients = response.data;
+      } catch (error) {
+        console.error("Fehler beim Laden der Zutaten:", error);
+      }
+    },
     async generateRecipe() {
       try {
         if (!this.currentUser) {
@@ -83,7 +120,6 @@ export default {
           return;
         }
 
-        // Generiere Rezept mit der User-ID in der URL
         const response = await axios.get(`${backendUrl}/generate/${this.currentUser.id}`);
         console.log("Server Response:", response.data);
         this.recipe = response.data;
@@ -120,10 +156,7 @@ export default {
         console.log("Rezept gelöscht!");
         alert("Rezept gelöscht!");
 
-        // Entferne das Rezept aus der lokalen Liste
         this.savedRecipes = this.savedRecipes.filter(r => r.id !== this.recipe.id);
-
-        // Rezept im Editor zurücksetzen
         this.recipe = null;
       } catch (error) {
         console.error("Fehler beim Löschen:", error);
@@ -143,7 +176,7 @@ export default {
       }
     },
     selectRecipe(selected) {
-      this.recipe = JSON.parse(JSON.stringify(selected)); // Kopie, um Original nicht direkt zu ändern
+      this.recipe = JSON.parse(JSON.stringify(selected));
     },
     async loadUsers() {
       try {
@@ -160,22 +193,21 @@ export default {
         const response = await axios.post(`${backendUrl}/register`, { name: this.newUserName });
         console.log("User registriert:", response.data);
 
-        // Den neuen Benutzer direkt im Dropdown hinzufügen
-        this.users.push(response.data);  // Füge den neuen Benutzer zur Liste hinzu
-
-        // Dropdown auf den neuen Benutzer setzen
+        this.users.push(response.data);
         this.currentUser = response.data;
-
-        // Eingabefeld zurücksetzen
         this.newUserName = "";
         this.isRegistering = false;
       } catch (error) {
         console.error("Fehler bei der Registrierung:", error);
       }
+    },
+    loadUserRecipes() {
+      this.loadRecipes();
     }
   },
   mounted() {
-    this.loadUsers(); // Benutzer bei der Initialisierung laden
+    this.loadUsers();
+    this.loadIngredients();
   }
 };
 </script>
