@@ -5,14 +5,22 @@
     <button @click="goBack">Zurück zur Benutzerauswahl</button>
     <button @click="generateRecipe">Rezept generieren</button>
 
+    <!-- Admin-Funktionen-Button -->
+    <button
+      v-if="currentUser?.level === 'admin'"
+      @click="goToAdmin"
+      class="mt-4 bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+      Admin-Funktionen
+    </button>
+
     <h3>Filter</h3>
     <div v-for="cat in Object.keys(categoryLabels)" :key="cat">
-    <label>{{ categoryLabels[cat] }}</label>
-    <select v-model="filters[cat]">
-      <option value="">Keine Auswahl</option>
-      <option v-for="opt in filterOptions[cat]" :key="opt" :value="opt">{{ opt }}</option>
-    </select>
-  </div>
+      <label>{{ categoryLabels[cat] }}</label>
+      <select v-model="filters[cat]">
+        <option value="">Keine Auswahl</option>
+        <option v-for="opt in filterOptions[cat]" :key="opt" :value="opt">{{ opt }}</option>
+      </select>
+    </div>
 
     <RecipeCard
       v-for="recipe in filteredRecipes"
@@ -23,94 +31,102 @@
   </div>
 </template>
 
-<script>
-import axios from 'axios';
-import RecipeCard from '../components/RecipeCard.vue'; // ggf. anpassen
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+<script setup>
+import { ref, computed, inject, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import axios from 'axios'
+import RecipeCard from '../components/RecipeCard.vue'
 
-export default {
-  props: ['userId'],
-  components: {
-    RecipeCard
-  },
-  data() {
-    return {
-      recipes: [],
-      user: null,
-      filters: {
-        vegetables: '',
-        proteins: '',
-        carbs: '',
-        fats: ''
-      },
-      filterOptions: {
-        vegetables: [],
-        proteins: [],
-        carbs: [],
-        fats: []
-      },
-      categoryLabels: {
-        vegetables: "Gemüse",
-        proteins: "Proteine",
-        carbs: "Kohlenhydrate",
-        fats: "Fette"
-      }
-    };
-  },
-  computed: {
-    filteredRecipes() {
-      return this.recipes.filter(r => {
-        const ing = r.ingredients || {};
-        return (!this.filters.vegetables || ing.vegetables === this.filters.vegetables)
-          && (!this.filters.proteins || ing.proteins === this.filters.proteins)
-          && (!this.filters.carbs || ing.carbs === this.filters.carbs)
-          && (!this.filters.fats || ing.fats === this.filters.fats);
-      });
-    }
-  },
-  methods: {
-    async loadUser() {
-      try {
-        const res = await axios.get(`${backendUrl}/users/${this.userId}`);
-        this.user = res.data;
-      } catch (e) {
-        console.error(e);
-      }
-    },
-    async loadRecipes() {
-      try {
-        const res = await axios.get(`${backendUrl}/recipes/${this.userId}`);
-        this.recipes = res.data;
-        this.extractFilterOptions();
-      } catch (e) {
-        console.error('Fehler beim Laden der Rezepte:', e);
-      }
-    },
-    extractFilterOptions() {
-      const categories = ['vegetables', 'proteins', 'carbs', 'fats'];
+const currentUser = inject('currentUser')
+const backendUrl = import.meta.env.VITE_BACKEND_URL
 
-      categories.forEach(category => {
-        const values = new Set();
-        this.recipes.forEach(recipe => {
-          const value = recipe.ingredients?.[category];
-          if (value) values.add(value);
-        });
-        this.filterOptions[category] = [...values];
-      });
-    },
-    goBack() {
-      this.$router.push({ name: 'UserSelection' });
-    },
-    generateRecipe() {
-      this.$router.push({ name: 'RecipeDetail', params: { userId: this.userId, recipeId: 'new' } });
-    },
-    goToRecipeDetail(recipeId) {
-      this.$router.push({ name: 'RecipeDetail', params: { userId: this.userId, recipeId } });
-    }
-  },
-  mounted() {
-    this.loadUser();
-    this.loadRecipes();
+const route = useRoute()
+const router = useRouter()
+const userId = route.params.userId
+
+const user = ref(null)
+const recipes = ref([])
+
+const filters = ref({
+  vegetables: '',
+  proteins: '',
+  carbs: '',
+  fats: ''
+})
+
+const filterOptions = ref({
+  vegetables: [],
+  proteins: [],
+  carbs: [],
+  fats: []
+})
+
+const categoryLabels = {
+  vegetables: "Gemüse",
+  proteins: "Proteine",
+  carbs: "Kohlenhydrate",
+  fats: "Fette"
+}
+
+const filteredRecipes = computed(() => {
+  return recipes.value.filter(r => {
+    const ing = r.ingredients || {}
+    return (!filters.value.vegetables || ing.vegetables === filters.value.vegetables)
+      && (!filters.value.proteins || ing.proteins === filters.value.proteins)
+      && (!filters.value.carbs || ing.carbs === filters.value.carbs)
+      && (!filters.value.fats || ing.fats === filters.value.fats)
+  })
+})
+
+async function loadUser() {
+  try {
+    const res = await axios.get(`${backendUrl}/users/${userId}`)
+    user.value = res.data
+  } catch (e) {
+    console.error('Fehler beim Laden des Benutzers:', e)
   }
-};
+}
+
+async function loadRecipes() {
+  try {
+    const res = await axios.get(`${backendUrl}/recipes/${userId}`)
+    recipes.value = res.data
+    extractFilterOptions()
+  } catch (e) {
+    console.error('Fehler beim Laden der Rezepte:', e)
+  }
+}
+
+function extractFilterOptions() {
+  const categories = ['vegetables', 'proteins', 'carbs', 'fats']
+  categories.forEach(category => {
+    const values = new Set()
+    recipes.value.forEach(recipe => {
+      const val = recipe.ingredients?.[category]
+      if (val) values.add(val)
+    })
+    filterOptions.value[category] = [...values]
+  })
+}
+
+function goBack() {
+  router.push({ name: 'UserSelection' })
+}
+
+function generateRecipe() {
+  router.push({ name: 'RecipeDetail', params: { userId, recipeId: 'new' } })
+}
+
+function goToRecipeDetail(recipeId) {
+  router.push({ name: 'RecipeDetail', params: { userId, recipeId } })
+}
+
+function goToAdmin() {
+  router.push({ name: 'AdminView' })
+}
+
+onMounted(() => {
+  loadUser()
+  loadRecipes()
+})
 </script>
