@@ -3,7 +3,15 @@
     <h2>Rezepte von User {{ user?.name || userId }}</h2>
 
     <button @click="goBack">Zurück zur Benutzerauswahl</button>
-    <button @click="generateRecipe">Rezept generieren</button>
+    <button v-if="!readonly" @click="generateRecipe">Rezept generieren</button>
+
+    <!-- Coach-Funktionen-Button -->
+  <button
+    v-if="['admin', 'coach'].includes(currentUser?.level)"
+    @click="$router.push('/coach')"
+    class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 ml-2">
+    Coach-Funktionen
+  </button>
 
     <!-- Admin-Funktionen-Button -->
     <button
@@ -26,7 +34,7 @@
       v-for="recipe in filteredRecipes"
       :key="recipe.id"
       :recipe="recipe"
-      @click="goToRecipeDetail(recipe.id)"
+      @click="readonly ? null : goToRecipeDetail(recipe.id)"
     />
   </div>
 </template>
@@ -37,6 +45,9 @@ import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import RecipeCard from '../components/RecipeCard.vue'
 
+const { readonly } = defineProps({
+  readonly: Boolean
+})
 const currentUser = inject('currentUser')
 const backendUrl = import.meta.env.VITE_BACKEND_URL
 
