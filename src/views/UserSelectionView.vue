@@ -14,6 +14,11 @@
     <h3>Neuen Benutzer anlegen</h3>
     <input v-model="newUserName" placeholder="Name" />
     <button @click="createUser" :disabled="!newUserName">Anlegen</button>
+    <h4>Entwickelt von: Ashardalon78,
+      <a href = "https://github.com/Ashardalon78">Github</a>
+      <a style="margin-left: 0.5em" href = "https://ashardalon78.itch.io/">ItchIo</a>
+      <a style="margin-left: 0.5em" href = "https://www.linkedin.com/in/ralf-kosyra-538b49229">LinkedIn</a>
+    </h4>
   </div>
 </template>
 
